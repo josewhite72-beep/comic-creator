@@ -81,6 +81,12 @@ function bindEvents() {
   // Clear cache & reload
   document.getElementById('clearCacheBtn').addEventListener('click', async () => {
     if (!confirm('Clear cache and reload the app?')) return;
+    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    // Delete all caches
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
@@ -839,21 +845,32 @@ function addCustomAsset(name, svg) {
 }
 
 // --- File upload ---
-function triggerSVGFile() {
-  document.getElementById('svgFileInput').click();
-}
-
 function handleSVGFile(e) {
   const file = e.target.files[0];
   if (!file) return;
-  const name = file.name.replace('.svg', '').replace(/-|_/g, ' ');
+  const name = file.name.replace(/\.svg$/i, '').replace(/-|_/g, ' ') || 'Custom';
   const reader = new FileReader();
   reader.onload = ev => {
-    const ok = addCustomAsset(name, ev.target.result);
+    const text = ev.target.result;
+    if (!text.includes('<svg')) {
+      showToast('File does not contain SVG code');
+      e.target.value = '';
+      return;
+    }
+    const ok = addCustomAsset(name, text);
     if (ok) showToast(name + ' imported!');
     e.target.value = '';
   };
+  reader.onerror = () => { showToast('Could not read file'); e.target.value = ''; };
   reader.readAsText(file);
+}
+
+// Alternative: open file manager directly (Android workaround)
+function triggerSVGFile() {
+  const input = document.getElementById('svgFileInput');
+  // Reset to force change event even if same file
+  input.value = '';
+  input.click();
 }
 
 // --- Paste modal ---
