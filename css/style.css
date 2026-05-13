@@ -405,3 +405,43 @@ textarea:focus, input[type=text]:focus { outline: none; border-color: var(--acce
   background: #1a1a2e; color: white; font-size: 10px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
 }
+
+/* ===== CUSTOM ASSETS ===== */
+.import-zone {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 8px; border-bottom: 1px solid #eee; margin-bottom: 8px;
+}
+.import-hint { font-size: 11px; color: #999; text-align: center; margin: 0; }
+.import-btn {
+  width: 100%; padding: 8px; border: 1.5px dashed #ccc;
+  background: var(--surface2); border-radius: 8px;
+  cursor: pointer; font-size: 12px; color: var(--ink); font-weight: 500;
+  transition: all 0.15s; text-align: center;
+}
+.import-btn:active { border-color: var(--accent); background: #eef0ff; }
+.custom-empty {
+  font-size: 11px; color: #bbb; text-align: center;
+  line-height: 1.6; padding: 12px 8px;
+}
+.custom-asset-wrap { position: relative; }
+.custom-del-btn {
+  display: none; position: absolute; top: -6px; right: -6px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #e74c3c; color: white; border: none;
+  font-size: 11px; line-height: 18px; text-align: center;
+  cursor: pointer; z-index: 10; padding: 0;
+}
+.custom-asset-wrap:hover .custom-del-btn { display: block; }
+.svg-preview-box {
+  border: 1px solid #eee; border-radius: 8px; padding: 10px;
+  background: #fafaf8; display: flex; align-items: center; justify-content: center;
+  min-height: 80px; margin-bottom: 4px;
+}
+.svg-preview-box svg { max-width: 100%; max-height: 120px; }
+
+/* ===== SELECTED BUBBLE ===== */
+.bubble-selected {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+  z-index: 15 !important;
+}
