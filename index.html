@@ -30,6 +30,7 @@
   </div>
   <div class="header-right">
     <button class="icon-btn" id="aiOpenBtn" title="AI Story Generator">✨ AI</button>
+    <button class="icon-btn" id="clearCacheBtn" title="Clear cache & reload">🔄</button>
     <button class="icon-btn" id="saveBtn" title="Save">💾</button>
     <button class="icon-btn accent" id="exportBtn" title="Export">📤</button>
   </div>
@@ -45,6 +46,7 @@
     <button class="dtab active" data-tab="chars">👤 Chars</button>
     <button class="dtab" data-tab="bgs">🖼 Bgs</button>
     <button class="dtab" data-tab="objs">📦 Props</button>
+    <button class="dtab" data-tab="custom">⭐ Mine</button>
   </div>
   <div id="tab-chars" class="tab-content active">
     <div class="asset-grid" id="charGrid"></div>
@@ -55,7 +57,39 @@
   <div id="tab-objs" class="tab-content">
     <div class="asset-grid" id="objGrid"></div>
   </div>
+  <div id="tab-custom" class="tab-content">
+    <div class="import-zone">
+      <p class="import-hint">Add your own SVG images</p>
+      <button class="import-btn" onclick="triggerSVGFile()">📁 Upload .svg file</button>
+      <button class="import-btn" onclick="openPasteModal()">📋 Paste SVG code</button>
+      <input type="file" id="svgFileInput" accept=".svg,image/svg+xml" style="display:none">
+    </div>
+    <div class="asset-grid" id="customGrid"></div>
+    <p id="customEmpty" class="custom-empty">No custom assets yet.<br>Upload or paste an SVG to start.</p>
+  </div>
 </div>
+
+<!-- PASTE SVG MODAL -->
+<div id="pasteModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>📋 Paste SVG Code</span>
+      <button class="icon-btn" id="closePaste">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Asset name</label>
+      <input type="text" id="svgName" placeholder="e.g. Dragon, House, Car..." maxlength="30">
+      <label class="field-label" style="margin-top:8px;">SVG code</label>
+      <textarea id="svgCode" placeholder='&lt;svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"&gt;...&lt;/svg&gt;' rows="8" style="font-family:monospace;font-size:11px;"></textarea>
+      <div id="svgPreviewBox" class="svg-preview-box hidden"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="sheet-btn" onclick="previewSVG()">👁 Preview</button>
+        <button class="ai-generate-btn" style="flex:2;" onclick="importPastedSVG()">✅ Add Asset</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="pasteOverlay" class="overlay hidden"></div>
 <div id="drawerOverlay" class="overlay hidden"></div>
 
 <!-- MAIN TOOLBAR -->
