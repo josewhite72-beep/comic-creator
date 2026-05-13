@@ -2,7 +2,8 @@
 const S = {
   layout: '2x3',
   selectedPanel: null,
-  panels: {},       // panelIdx -> { bg: svgString|null, elements: [] }
+  selectedBubble: null,   // currently selected bubble/caption DOM element
+  panels: {},
   textSize: 9,
   bubbleColor: '#ffffff',
   deferredInstall: null
@@ -201,7 +202,7 @@ function restorePanel(el, idx) {
     el.appendChild(wrap);
   }
   if (pd.elements) {
-    pd.elements.forEach(item => addElementToPanel(el, item, false));
+    pd.elements.forEach(item => addElementToPanel(el, item, true));
   }
 }
 
@@ -375,6 +376,10 @@ function setTextSize(btn) {
   document.querySelectorAll('.sz-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   S.textSize = parseInt(btn.dataset.size);
+  // Apply to selected bubble immediately
+  if (S.selectedBubble) {
+    S.selectedBubble.style.fontSize = S.textSize + 'px';
+  }
 }
 
 // ===== BUBBLE COLORS =====
@@ -389,39 +394,82 @@ function buildBubbleColors() {
       document.querySelectorAll('.bc').forEach(b => b.classList.remove('active'));
       div.classList.add('active');
       S.bubbleColor = color;
+      // Apply to selected bubble immediately
+      if (S.selectedBubble) {
+        S.selectedBubble.style.background = color;
+        // Update ::before pseudo color for speech bubble tail
+        S.selectedBubble.dataset.bgColor = color;
+      }
     });
     row.appendChild(div);
   });
 }
 
-// ===== DRAG (mouse + touch) =====
+// ===== DRAG (mouse + touch) with bubble selection =====
 function makeDraggable(el, container) {
-  let startX, startY, elX, elY, dragging = false;
+  let startX, startY, dragging = false, moved = false;
+  const DRAG_THRESHOLD = 6; // px before considered a drag vs tap
 
   function getPos(e) {
     const t = e.touches ? e.touches[0] : e;
     return { x: t.clientX, y: t.clientY };
   }
 
+  function selectBubble(bubbleEl) {
+    // Deselect previous
+    document.querySelectorAll('.bubble-selected').forEach(b => b.classList.remove('bubble-selected'));
+    S.selectedBubble = bubbleEl;
+    if (bubbleEl) {
+      bubbleEl.classList.add('bubble-selected');
+      // Sync sheet controls to this bubble's current style
+      const size = parseInt(bubbleEl.style.fontSize) || 9;
+      document.querySelectorAll('.sz-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.size) === size);
+      });
+      const bg = bubbleEl.style.background || '#ffffff';
+      document.querySelectorAll('.bc').forEach(b => {
+        b.classList.toggle('active', b.style.background === bg);
+      });
+      openPanelSheet();
+    }
+  }
+
   function onStart(e) {
-    if (e.target.contentEditable === 'true' && !e.target.classList.contains('char-sprite')) return;
     if (e.target.classList.contains('bubble-del') || e.target.classList.contains('sprite-del')) return;
-    e.preventDefault();
-    dragging = true;
+    // For bubbles: allow drag from anywhere; for sprites too
     const pos = getPos(e);
     const rect = el.getBoundingClientRect();
     startX = pos.x - rect.left;
     startY = pos.y - rect.top;
+    dragging = false;
+    moved = false;
     el.style.zIndex = 50;
+
+    // Select bubble on touch start
+    const isBubble = el.classList.contains('speech-bubble') ||
+                     el.classList.contains('thought-bubble') ||
+                     el.classList.contains('caption-box');
+    if (isBubble) selectBubble(el);
+
+    // Prevent page scroll during potential drag
+    e.preventDefault();
   }
 
   function onMove(e) {
-    if (!dragging) return;
-    e.preventDefault();
+    if (el.style.zIndex !== '50') return;
     const pos = getPos(e);
     const cr = container.getBoundingClientRect();
     let nx = pos.x - cr.left - startX;
     let ny = pos.y - cr.top - startY;
+
+    // Check threshold
+    const dx = Math.abs(nx - (parseFloat(el.style.left) || 0));
+    const dy = Math.abs(ny - (parseFloat(el.style.top) || 0));
+    if (!moved && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) moved = true;
+    if (!moved) return;
+
+    dragging = true;
+    e.preventDefault();
     nx = Math.max(0, Math.min(cr.width - el.offsetWidth, nx));
     ny = Math.max(0, Math.min(cr.height - el.offsetHeight, ny));
     el.style.left = nx + 'px';
@@ -525,6 +573,7 @@ async function generateStory() {
     status.className = 'ai-status success';
     applyStoryToPanels(panels);
     setTimeout(closeAIModal, 1400);
+    showToast('Tip: tap a bubble to select, then drag or restyle it');
 
   } catch (err) {
     status.textContent = '❌ ' + err.message;
