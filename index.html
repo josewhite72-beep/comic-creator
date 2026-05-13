@@ -61,8 +61,9 @@
     <div class="import-zone">
       <p class="import-hint">Add your own SVG images</p>
       <button class="import-btn" onclick="triggerSVGFile()">📁 Upload .svg file</button>
+      <p class="import-hint" style="font-size:10px;">On Android: tap ☰ in the file picker → Downloads</p>
       <button class="import-btn" onclick="openPasteModal()">📋 Paste SVG code</button>
-      <input type="file" id="svgFileInput" accept=".svg,image/svg+xml" style="display:none">
+      <input type="file" id="svgFileInput" accept=".svg,image/svg+xml,text/plain,text/*" style="display:none">
     </div>
     <div class="asset-grid" id="customGrid"></div>
     <p id="customEmpty" class="custom-empty">No custom assets yet.<br>Upload or paste an SVG to start.</p>
