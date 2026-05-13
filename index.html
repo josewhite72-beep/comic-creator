@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Comic Creator">
+<meta name="description" content="AOA Comic Book Creator for English teaching - MEDUCA Panama">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Comic Book Creator</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- INSTALL BANNER -->
+<div id="installBanner" class="install-banner hidden">
+  <span>📲 Install Comic Creator on your device</span>
+  <button id="installBtn">Install</button>
+  <button id="dismissInstall">✕</button>
+</div>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-left">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <span class="app-title">🎨 Comic Creator</span>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" id="aiOpenBtn" title="AI Story Generator">✨ AI</button>
+    <button class="icon-btn" id="saveBtn" title="Save">💾</button>
+    <button class="icon-btn accent" id="exportBtn" title="Export">📤</button>
+  </div>
+</header>
+
+<!-- SIDE DRAWER (assets) -->
+<div id="drawer" class="drawer hidden">
+  <div class="drawer-header">
+    <span>Assets</span>
+    <button class="icon-btn" id="closeDrawer">✕</button>
+  </div>
+  <div class="drawer-tabs">
+    <button class="dtab active" data-tab="chars">👤 Chars</button>
+    <button class="dtab" data-tab="bgs">🖼 Bgs</button>
+    <button class="dtab" data-tab="objs">📦 Props</button>
+  </div>
+  <div id="tab-chars" class="tab-content active">
+    <div class="asset-grid" id="charGrid"></div>
+  </div>
+  <div id="tab-bgs" class="tab-content">
+    <div class="asset-grid" id="bgGrid"></div>
+  </div>
+  <div id="tab-objs" class="tab-content">
+    <div class="asset-grid" id="objGrid"></div>
+  </div>
+</div>
+<div id="drawerOverlay" class="overlay hidden"></div>
+
+<!-- MAIN TOOLBAR -->
+<div class="main-toolbar">
+  <div class="toolbar-group">
+    <label class="tb-label">Layout</label>
+    <select id="layoutSel" class="tb-select">
+      <option value="2x3">2×3 (6)</option>
+      <option value="3x2">3×2 (6)</option>
+      <option value="2x2">2×2 (4)</option>
+      <option value="strip">Strip (4)</option>
+      <option value="wide">Wide (6)</option>
+    </select>
+  </div>
+  <div class="toolbar-group">
+    <label class="tb-label">Add text</label>
+    <button class="tb-btn" onclick="addBubble('speech')">💬</button>
+    <button class="tb-btn" onclick="addBubble('thought')">💭</button>
+    <button class="tb-btn" onclick="addBubble('caption')">📋</button>
+  </div>
+  <div class="toolbar-group">
+    <button class="tb-btn" id="assetsBtn">🎭 Assets</button>
+    <button class="tb-btn danger" onclick="clearSelectedPanel()">🗑</button>
+  </div>
+</div>
+
+<!-- CANVAS -->
+<main class="canvas-area">
+  <div id="comicGrid" class="comic-grid layout-2x3"></div>
+</main>
+
+<!-- PANEL EDITOR BOTTOM SHEET -->
+<div id="panelSheet" class="bottom-sheet hidden">
+  <div class="sheet-handle"></div>
+  <div class="sheet-content">
+    <div class="sheet-row">
+      <span class="sheet-label">Text size</span>
+      <div class="size-btns">
+        <button class="sz-btn active" data-size="9" onclick="setTextSize(this)">S</button>
+        <button class="sz-btn" data-size="12" onclick="setTextSize(this)">M</button>
+        <button class="sz-btn" data-size="15" onclick="setTextSize(this)">L</button>
+      </div>
+    </div>
+    <div class="sheet-row">
+      <span class="sheet-label">Bubble color</span>
+      <div class="color-row" id="bubbleColors"></div>
+    </div>
+    <div class="sheet-row">
+      <button class="sheet-btn" onclick="clearBubbles()">Remove bubbles</button>
+      <button class="sheet-btn danger" onclick="clearSelectedPanel()">Clear panel</button>
+    </div>
+  </div>
+</div>
+
+<!-- STORY MODAL -->
+<div id="aiModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>✨ AI Story Generator</span>
+      <button class="icon-btn" id="closeAI">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Topic / Lesson Theme</label>
+      <textarea id="aiTopic" placeholder="e.g. Places I can go, Animals in Panama, Asking for help, Daily routines, Family members..." rows="3"></textarea>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Grade level</label>
+          <select id="aiGrade">
+            <option>Pre-K / Kinder</option>
+            <option>Grade 1-2</option>
+            <option>Grade 3-4</option>
+            <option selected>Grade 5-6</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">AOA Phase</label>
+          <select id="aiPhase">
+            <option>Warm-up</option>
+            <option>Presentation</option>
+            <option>Practice</option>
+            <option>Reading</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="field-label">Lesson plan context (optional)</label>
+      <textarea id="aiContext" placeholder="Paste vocabulary, objectives or structures from your planeamiento..." rows="3"></textarea>
+
+      <button class="ai-generate-btn" id="aiGenerateBtn" onclick="generateStory()">✨ Generate Story</button>
+      <div id="aiStatus" class="ai-status hidden"></div>
+    </div>
+  </div>
+</div>
+<div id="aiOverlay" class="overlay hidden"></div>
+
+<!-- SAVE/LOAD MODAL -->
+<div id="saveModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>💾 Comics</span>
+      <button class="icon-btn" id="closeSave">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Save current as:</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="saveName" placeholder="Comic title..." style="flex:1;">
+        <button class="tb-btn accent" onclick="saveComic()">Save</button>
+      </div>
+      <div class="divider"></div>
+      <label class="field-label">Saved comics</label>
+      <div id="savedList"></div>
+    </div>
+  </div>
+</div>
+<div id="saveOverlay" class="overlay hidden"></div>
+
+<!-- EXPORT MODAL -->
+<div id="exportModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>📤 Export</span>
+      <button class="icon-btn" id="closeExport">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#666;margin-bottom:12px;">Choose export format:</p>
+      <button class="export-btn" onclick="exportHTML()">🌐 HTML File<br><small>Open in browser, print or project</small></button>
+      <button class="export-btn" onclick="exportPrintHTML()">🖨️ Print Layout<br><small>Black & white, printer-friendly</small></button>
+      <button class="export-btn" onclick="exportJSON()">📄 JSON Backup<br><small>Reload later in the app</small></button>
+    </div>
+  </div>
+</div>
+<div id="exportOverlay" class="overlay hidden"></div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="js/assets.js"></script>
+<script src="js/stories.js"></script>
+<script src="js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .catch(err => console.log('SW:', err));
+  });
+}
+</script>
+</body>
+</html>
