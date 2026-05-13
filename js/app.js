@@ -19,7 +19,41 @@ document.addEventListener('DOMContentLoaded', () => {
   renderGrid();
   bindEvents();
   loadAutoSave();
+  readURLParams();
 });
+
+// ===== READ URL PARAMS FROM PLAN PARSER =====
+function readURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  const topic = params.get('topic');
+  const grade = params.get('grade');
+  const phase = params.get('phase');
+  const context = params.get('context');
+
+  if (!topic) return;
+
+  // Pre-fill modal fields
+  if (topic) document.getElementById('aiTopic').value = topic;
+  if (context) document.getElementById('aiContext').value = context;
+  if (grade) {
+    const sel = document.getElementById('aiGrade');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].text === grade) { sel.selectedIndex = i; break; }
+    }
+  }
+  if (phase) {
+    const sel = document.getElementById('aiPhase');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].text === phase) { sel.selectedIndex = i; break; }
+    }
+  }
+
+  // Auto-open the AI modal
+  setTimeout(() => openAIModal(), 400);
+
+  // Clean URL without reloading
+  window.history.replaceState({}, '', window.location.pathname);
+}
 
 // ===== EVENTS =====
 function bindEvents() {
