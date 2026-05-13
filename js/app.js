@@ -38,6 +38,7 @@ function bindEvents() {
   // drawer tabs
   document.querySelectorAll('.dtab').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.dataset.tab === 'custom') buildCustomGrid();
       document.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
@@ -76,6 +77,23 @@ function bindEvents() {
   document.getElementById('dismissInstall').addEventListener('click', () => {
     document.getElementById('installBanner').classList.add('hidden');
   });
+
+  // Clear cache & reload
+  document.getElementById('clearCacheBtn').addEventListener('click', async () => {
+    if (!confirm('Clear cache and reload the app?')) return;
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    location.reload(true);
+  });
+
+  // SVG file input
+  document.getElementById('svgFileInput').addEventListener('change', handleSVGFile);
+
+  // Paste modal
+  document.getElementById('closePaste').addEventListener('click', closePasteModal);
+  document.getElementById('pasteOverlay').addEventListener('click', closePasteModal);
 
   // Panel sheet close on canvas tap outside
   document.getElementById('comicGrid').addEventListener('click', e => {
@@ -737,6 +755,137 @@ function downloadFile(content, filename, type) {
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+
+// ===== CUSTOM ASSETS =====
+const CUSTOM_STORAGE_KEY = 'comicCustomAssets';
+
+function loadCustomAssets() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_STORAGE_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveCustomAssets(assets) {
+  localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(assets));
+}
+
+function buildCustomGrid() {
+  const grid = document.getElementById('customGrid');
+  const empty = document.getElementById('customEmpty');
+  const assets = loadCustomAssets();
+  grid.innerHTML = '';
+  if (!assets.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  assets.forEach((asset, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'custom-asset-wrap';
+    const item = document.createElement('div');
+    item.className = 'asset-item';
+    item.innerHTML = asset.svg + `<div class="asset-label">${asset.name}</div>`;
+    item.addEventListener('click', () => placeCustomAsset(asset));
+    const del = document.createElement('button');
+    del.className = 'custom-del-btn';
+    del.textContent = '×';
+    del.addEventListener('click', e => { e.stopPropagation(); deleteCustomAsset(i); });
+    wrap.appendChild(item);
+    wrap.appendChild(del);
+    grid.appendChild(wrap);
+  });
+}
+
+function deleteCustomAsset(idx) {
+  const assets = loadCustomAssets();
+  assets.splice(idx, 1);
+  saveCustomAssets(assets);
+  buildCustomGrid();
+  showToast('Asset removed');
+}
+
+function placeCustomAsset(asset) {
+  if (S.selectedPanel === null) { showToast('Tap a panel first!'); closeDrawer(); return; }
+  const idx = S.selectedPanel;
+  const panel = ensurePanel(idx);
+  const item = { type: 'char', key: 'custom', svg: asset.svg, x: 15, y: 10, w: '52px', h: '52px' };
+  S.panels[idx].elements.push(item);
+  addElementToPanel(panel, item, true);
+  closeDrawer();
+  autoSave();
+  showToast(asset.name + ' added!');
+}
+
+function addCustomAsset(name, svg) {
+  // Sanitize: keep only SVG, strip scripts
+  const clean = svg.replace(/<script[\s\S]*?<\/script>/gi, '')
+                   .replace(/on\w+="[^"]*"/gi, '')
+                   .replace(/on\w+='[^']*'/gi, '');
+  if (!clean.includes('<svg')) { showToast('Invalid SVG'); return false; }
+
+  // Normalize viewBox for consistent display
+  let normalized = clean.trim();
+  if (!normalized.includes('viewBox') && !normalized.includes('viewbox')) {
+    normalized = normalized.replace('<svg', '<svg viewBox="0 0 100 100"');
+  }
+  // Force width/height to 100% for responsive display
+  normalized = normalized.replace(/<svg([^>]*)width="[^"]*"/, '<svg$1');
+  normalized = normalized.replace(/<svg([^>]*)height="[^"]*"/, '<svg$1');
+
+  const assets = loadCustomAssets();
+  assets.push({ name: name || 'Custom', svg: normalized });
+  saveCustomAssets(assets);
+  buildCustomGrid();
+  return true;
+}
+
+// --- File upload ---
+function triggerSVGFile() {
+  document.getElementById('svgFileInput').click();
+}
+
+function handleSVGFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const name = file.name.replace('.svg', '').replace(/-|_/g, ' ');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const ok = addCustomAsset(name, ev.target.result);
+    if (ok) showToast(name + ' imported!');
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// --- Paste modal ---
+function openPasteModal() {
+  document.getElementById('pasteModal').classList.remove('hidden');
+  document.getElementById('pasteOverlay').classList.remove('hidden');
+  document.getElementById('svgPreviewBox').classList.add('hidden');
+  document.getElementById('svgCode').value = '';
+  document.getElementById('svgName').value = '';
+}
+function closePasteModal() {
+  document.getElementById('pasteModal').classList.add('hidden');
+  document.getElementById('pasteOverlay').classList.add('hidden');
+}
+
+function previewSVG() {
+  const code = document.getElementById('svgCode').value.trim();
+  const box = document.getElementById('svgPreviewBox');
+  if (!code.includes('<svg')) { showToast('Paste valid SVG code'); return; }
+  box.innerHTML = code;
+  box.classList.remove('hidden');
+}
+
+function importPastedSVG() {
+  const name = document.getElementById('svgName').value.trim() || 'Custom';
+  const code = document.getElementById('svgCode').value.trim();
+  if (!code) { showToast('Paste SVG code first'); return; }
+  const ok = addCustomAsset(name, code);
+  if (ok) {
+    showToast(name + ' added to My Assets!');
+    closePasteModal();
+  }
 }
 
 // ===== TOAST =====
